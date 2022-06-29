@@ -1,0 +1,473 @@
+Hello!
+bysgpuhsg tp 9sthpagep hah paep iaeh iahp aehp a phiagpiag pa pha var current_position = [];
+
+function initMap2(order_id = 0) {
+    if ($(document).width() <= 760) {
+        let free_space = $("#pick-the-pharmacy").height() - $(".map-filters").height() - $(".nav-tabs").height() - 16 * 3;
+        $("#dvMapPrice").css("height", free_space + "px");
+        $(".pick-pharmacy").slimScroll({
+            size: "6px",
+            distance: "0px",
+            opacity: "1",
+            width: "auto",
+            height: free_space + "px",
+            color: "#D5D5D5",
+            allowPageScroll: false,
+            alwaysVisible: true,
+        });
+    } else {
+        let filter_height = $("#pick-the-pharmacy").height() - $(".map-filters").height() - 32;
+
+        $("#dvMapPrice").css("height", "auto");
+        $(".pick-pharmacy").slimScroll({
+            size: "6px",
+            distance: "0px",
+            opacity: "1",
+            width: "auto",
+            height: filter_height + "px",
+            color: "#D5D5D5",
+            allowPageScroll: false,
+            alwaysVisible: true,
+        });
+    }
+    const city = $("a.dashed[data-popup='city-select']").text();
+    let theUrl = "https://maps.googleapis.com/maps/api/geocode/json?address=Украина+" + city + "&key=AIzaSyB-lZtlnWQcJ3ADDNz_wfFSCyn0_4NQk5E";
+    function httpGet(theUrl) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open("GET", theUrl, false); // false for synchronous request
+        xmlHttp.send(null);
+        return xmlHttp.responseText;
+    }
+    const bound = JSON.parse(httpGet(theUrl).toString());
+    const northeast = bound.results[0].geometry.bounds.northeast;
+    const southwest = bound.results[0].geometry.bounds.southwest;
+    const newBounds = new google.maps.LatLngBounds(southwest, northeast);
+
+    let markers = price_per_pharmacy.prices;
+    const iconBase = "/images/home/icons/";
+    const icons = {
+        pharmacy_1: { icon: iconBase + "pharmacy_1.svg" },
+        pharmacy_2: { icon: iconBase + "pharmacy_2.svg" },
+        priceMap: { icon: iconBase + "priceMap.svg" }
+    };
+    for (var i = 0; i < markers.length; i++) {
+        markers[i].coords = { "lat": markers[i].pharmacy.lat, "lng": markers[i].pharmacy.lng };
+    }
+    var mapOptions = {
+        bounds: newBounds,
+        zoom: 12,
+        mapId: "bc983a6142144ed2",
+        disableDefaultUI: true
+    };
+
+
+    var infoWindow = new google.maps.InfoWindow();
+    var latlngbounds = new google.maps.LatLngBounds();
+    const map = new google.maps.Map(document.getElementById("dvMapPrice"), mapOptions);
+    map.setCenter(bound.results[0].geometry.location);
+    current_position = bound.results[0].geometry.location;
+
+    var gmarkers = [];
+    var new_markers = [];
+    var mcOptions = {
+        styles: [{
+            url: iconBase + "cluster/1.png",
+            width: 48,
+            height: 48,
+            fontFamily: "comic sans ms",
+            textSize: 14,
+            textColor: "white",
+        }],
+        gridSize: 80,
+        averageCenter: true,
+        minimumClusterSize: 2
+    };
+
+    for (var i = 0; i < markers.length; i++) {
+        gmarkers.push(addMarker(markers[i], i));
+    }
+    closest_sort();
+    // let your_selected_pharmacy = $(".maps-list-item.pick[data-yph='1']").clone();
+    // $(".maps-list-item.pick[data-yph='1']").remove();
+    // $("#pick-the-pharmacy .map-filters").append(your_selected_pharmacy);
+    var markerCluster = new MarkerClusterer(map, gmarkers, mcOptions);
+    // Create and fill info to each marker
+    function addMarker(props, cnt) {
+        var marker = new google.maps.Marker({
+            position: props.coords,
+            map: map,
+            icon: {
+                url: icons.priceMap.icon,
+                labelOrigin: { x: 40, y: 12 }
+            },
+            label: {
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: '12px',
+                text: props.price,
+                padding: '5px'
+            },
+            category: props.pharmacy.fulltime,
+            id: props.id
+        });
+
+        let yph,bin = 0;
+        if( props.pharmacy.current_pharmacy ){
+            yph = 1;
+        }
+        if( props.pharmacy.has_products_in_cart ){
+            bin = 1;
+        }
+        // Creating left side pharmacy items
+        $(".maps-list").append('\
+            <div class="maps-list-item pick" data-id="'+ props.id + '" data-cnt="' + (cnt + 1) + '" data-yph="' + yph + '"  data-bin="' + bin + '" data-order="' + props.picked + '"  style="order:' + cnt + '"> \
+                <div class="your-order-ph">Ваша аптека для замовлень</div>\
+                <div class="your-order-bin">У вашому кошику є товари з цієї аптеки</div>\
+                <img class="pharmacy-logo" src="/images/home/icons/pharmacy_1.svg" alt="" width="48" height="48" /> \
+                <p class="title">'+ props.pharmacy.title + '</p> \
+                <p class="address">' + props.pharmacy.address + '</p> \
+                <hr>\
+                <div class="item-price-value"><p class="item-price">' + props.price + ' грн.</p> \
+                <button class="primary add-pharmacy-order" data-pick="select-pharmacy" data-order="' +order_id + '" data-p="' + props.product_id + '" data-ph="' + props.pharmacy_id + '" data-title="' +props.pharmacy.title + '" data-img="/images/home/icons/pharmacy_1.svg" data-address="' +props.pharmacy.address + '" data-price="' +props.price + '">'+ price_per_pharmacy.translate.pick_here + '</button> \
+                </div>\
+            </div> \
+        ');
+
+        // Display info window
+        (function (marker, props) {
+            marker.addListener("click", () => {
+                map.panTo(props.coords);
+                if (marker.map === null) {
+                    map.setZoom(19);
+                }
+
+                $("[data-id]").removeClass("active");
+                $("[data-id='" + props.id + "']").addClass("active");
+                $("[data-id='" + props.id + "']").removeClass("d-none");
+                let position = $('.maps-list').scrollTop() + $("[data-id='" + props.id + "']").position().top - $('.maps-list').position().top;
+                $('.maps-list').animate({ scrollTop: position}, "fast");
+            });
+        })(marker, props);
+        // Focus left side items and call info window
+        $('.maps-list-item[data-id="' + props.id + '"]').on('click', function (e) {
+            if ($(document).width() < 768 && $(e.target).hasClass('show-on-map')) {
+                $('html, body').animate({ scrollTop: $('.city-select').offset().top }, "fast");
+                setTimeout(function () {
+                    google.maps.event.trigger(marker, 'click');
+                    $("[data-tab='map']").trigger("click")
+                }, 500);
+            } else {
+                $(this).addClass('active');
+                google.maps.event.trigger(marker, 'click');
+            }
+        })
+        latlngbounds.extend(marker.position);
+        return marker;
+    }
+
+    // Create get geolocation button
+    const locationButton = document.createElement("button");
+    locationButton.textContent = price_per_pharmacy.translate.my_location;
+    locationButton.classList.add("custom-map-control-button");
+    map.controls[google.maps.ControlPosition.LEFT_TOP].push(locationButton);
+    locationButton.addEventListener("click", () => {
+        // Try geolocation
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    };
+                    map.setCenter(pos);
+                    current_position = pos;
+                },
+                () => {
+                    handleLocationError(true, infoWindow, map.getCenter());
+                }
+            );
+        } else {
+            // Browser doesn't support Geolocation
+            handleLocationError(false, infoWindow, map.getCenter());
+        }
+    });
+
+    // Add/remove markers full time
+    (document.getElementById("fulltime")).addEventListener("click", () => {
+        $('p.other, p.closest').remove();
+        new_markers = [];
+        if ($('#fulltime').is(':checked')) {
+            for (let i = 0; i < gmarkers.length; i++) {
+                // console.log(gmarkers[i].category);
+                if (gmarkers[i].category) {
+                    new_markers.push(gmarkers[i]);
+                    $('.maps-list-item[data-id="' + gmarkers[i].id + '"]').css('display', 'block');
+                }
+                else {
+                    $('.maps-list-item[data-id="' + gmarkers[i].id + '"]').css('display', 'none');
+                }
+            }
+        }
+        else {
+            for (let i = 0; i < gmarkers.length; i++) {
+                new_markers.push(gmarkers[i]);
+                $('.maps-list-item[data-id="' + gmarkers[i].id + '"]').css('display', 'block');
+            }
+        }
+        markerCluster.clearMarkers();
+        markerCluster = new MarkerClusterer(map, new_markers, mcOptions);
+    });
+
+
+    function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+        infoWindow.setPosition(pos);
+        infoWindow.setContent(
+            browserHasGeolocation
+                ? "Error: The Geolocation service failed."
+                : "Error: Your browser doesn't support geolocation."
+        );
+        infoWindow.open(map);
+    }
+    /******************************************* START SEARCH ********************************************/
+    // Create the search box and link it to the UI element.
+    const input = document.getElementById("pac-input2");
+    var options = {
+        bounds: newBounds,
+        componentRestrictions: {
+            country: 'ua'
+        },
+        strictBounds: true,
+        fields: ["address_components", "geometry"],
+        types: ["address"]
+    };
+    const searchBox = new google.maps.places.Autocomplete(input, options);
+    // Bias the SearchBox results towards current map's viewport.
+    map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+    });
+
+    // Listen for the event fired when the user selects a prediction and retrieve
+    // more details for that place.
+    searchBox.addListener("place_changed", () => {
+        const places = searchBox.getPlace();
+        // console.log(places);
+
+        if (places.geometry == undefined) {
+            return;
+        }
+        let address1 = "";
+
+        for (const component of places.address_components) {
+            const componentType = component.types[0];
+
+            switch (componentType) {
+                case "street_number": {
+                    address1 = `${component.long_name} ${address1}` + ', ';
+                    break;
+                }
+                case "route": {
+                    address1 += component.short_name;
+                    break;
+                }
+                case "locality":
+                    address1 += ", " + component.long_name;
+                    break;
+            }
+        }
+        input.value = address1;
+        map.setCenter(places.geometry.location);
+        var counter = 0; // number of pharmacys
+        var found_pharmacy = [];
+        var radius = 100; // start search radius
+        var max_radius = 5000; // end search radius
+        while (counter < 2 && radius <= max_radius) {
+            var searchArea = new google.maps.Polygon({ map: map, path: circlePath(places.geometry.location, radius, 360) })
+            // Set circle shape in map
+            function circlePath(center, radius, points) {
+                var a = [], p = 360 / points, d = 0;
+                for (var i = 0; i < points; ++i, d += p) {
+                    a.push(google.maps.geometry.spherical.computeOffset(center, radius, d));
+                }
+                return a;
+            }
+            counter = 0;
+            found_pharmacy = [];
+            if (!$('#full_time').is(':checked')) {
+                for (let i = 0; i < gmarkers.length; i++) {
+                    var isWithinPolygon = google.maps.geometry.poly.containsLocation(gmarkers[i].position, searchArea);
+                    if (isWithinPolygon) {
+                        counter++;
+                        found_pharmacy.push(gmarkers[i].id);
+                    }
+                }
+            } else {
+                for (let i = 0; i < new_markers.length; i++) {
+                    var isWithinPolygon = google.maps.geometry.poly.containsLocation(new_markers[i].position, searchArea);
+                    if (isWithinPolygon) {
+                        counter++;
+                        found_pharmacy.push(new_markers[i].id);
+                    }
+                }
+            }
+            searchArea.setMap(null);
+            radius += 100;
+        }
+        // console.log(found_pharmacy)
+        $('p.other, p.closest').remove();
+        if (found_pharmacy.length == 0) {
+            $(".maps-list").prepend('<p class="other">Інші аптеки</p>');
+        } else {
+            for (let i = 0; i < found_pharmacy.length; i++) {
+                if (i == 0) {
+                    $(".maps-list").prepend('<p class="other" style="order:'+1+'">Інші аптеки</p>');
+                }
+                $('.maps-list-item[data-id="' + found_pharmacy[i] + '"]').css("order", i);
+                if (i == found_pharmacy.length - 1) {
+                    $(".maps-list").prepend('<p class="closest">Знайдено аптеки поблизу</p>');
+                }
+            }
+        }
+    });
+    /******************************************* END SEARCH ********************************************/
+    /******************************************* START SORTING ***********************************************/
+
+    /******************************************* END SORTING ***********************************************/
+    // /******************************************* More Button *******************************************/
+    //     var total_item = $('.maps-list-item').length + 1;
+    //     var total_buttons = 0;
+    //     var button = "";
+    //     for(let i = 1; i <= total_item; i++){
+    //         if(i >= 10){
+    //             if(i % 10 == 0){
+    //                 if((total_item - i) >= 10){
+    //                     if(total_buttons == 0)
+    //                         button += '<button class="third more-button" data-more="'+((total_buttons+1)*10 + 1)+'">Показати ще 10</button>';
+    //                     else
+    //                         button += '<button class="third more-button hide" data-more="'+((total_buttons+1)*10 + 1)+'">Показати ще 10</button>';
+    //                     total_buttons++;
+    //                 }
+    //                 else{
+    //                     if(total_buttons == 0)
+    //                         button +='<button class="third more-button" data-more="'+((total_buttons+1)*10 + 1)+'">Показати ще '+ (total_item - i - 1) +'</button>';
+    //                     else
+    //                         button +='<button class="third more-button hide" data-more="'+((total_buttons+1)*10 + 1)+'">Показати ще '+ (total_item - i - 1) +'</button>';
+    //                     total_buttons++;
+    //                 }
+    //                 $('.maps-list').append(button);
+    //                 button = "";
+    //             }
+    //             $($('.maps-list-item')[i]).addClass("hide");
+    //         }
+    //     }
+
+    //     $('[data-more]').each(function(){
+    //         $(this).on("click", () => {
+    //             for(let i = $(this).data("more"); i < $(this).data("more") + 10; i++){
+    //                 $($(".maps-list-item")[i]).removeClass("hide");
+    //             }
+    //             $(this).remove();
+    //             $($('[data-more]')[0]).removeClass("hide");
+    //         })
+    //     });
+    // /******************************************* More Button *******************************************/
+    /******************************************* Pick Button *******************************************/
+    // $(document).on("click", "button[data-pick='select-pharmacy']", function () {
+    //     let data = [];
+    //     data.push($(this).parents(".maps-list-item").find(".title").text());
+    //     data.push($(this).parents(".maps-list-item").find(".address").text());
+    //     selected_pharmacy(data);
+    //     closePopup();
+    // })
+    /******************************************* Pick Button *******************************************/
+
+}
+
+$(document).on("click", "[data-option]", function () {
+    $('p.other, p.closest').remove();
+    if ($(this).data("value") == "best_offer") {
+        price_sort();
+    }
+    if ($(this).data("value") == "no_sort") {
+        no_sort();
+    }
+    if ($(this).data("value") == "closes") {
+        closest_sort();
+    }
+    $('.maps-list').animate({ scrollTop: 0}, "fast");
+})
+
+// price_sort()
+function no_sort() {
+    console.time('sorting')
+    for (let i = 0; i < $(".maps-list-item[data-cnt]").length; i++) {
+        $(".maps-list-item[data-cnt='" + i + "']").css("order", i);
+    };
+    console.timeEnd('sorting')
+}
+
+function price_sort() {
+    console.time('sorting')
+    let sort_it = []
+    for (let i = 0; i < price_per_pharmacy.prices.length; i++) {
+        sort_it[i] = [price_per_pharmacy.prices[i].price, price_per_pharmacy.prices[i].id];
+    }
+    sort_it.sort(function (a, b) {
+        return a[0] - b[0]
+    });
+    for (let i = 0; i < sort_it.length; i++) {
+        $(".maps-list-item[data-id='" + sort_it[i][1] + "'").css("order", i);
+    };
+    console.timeEnd('sorting')
+}
+
+function closest_sort() {
+    console.time('sorting')
+    let sort_it = []
+    for (let i = 0; i < price_per_pharmacy.prices.length; i++) {
+        sort_it[i] = [Math.sqrt(
+            Math.pow(Math.abs(price_per_pharmacy.prices[i].coords.lat - current_position.lat),2) +
+            Math.pow(Math.abs(price_per_pharmacy.prices[i].coords.lng - current_position.lng),2)
+        ),
+        price_per_pharmacy.prices[i].id];
+    }
+    sort_it.sort(function (a, b) {
+        return a[0] - b[0]
+    });
+    for (let i = 0; i < sort_it.length; i++) {
+        $(".maps-list-item[data-id='" + sort_it[i][1] + "'").css("order", i);
+        if(i > 10){
+            $(".maps-list-item[data-id='" + sort_it[i][1] + "'").addClass("d-none");
+        }
+    };
+    console.timeEnd('sorting')
+    // console.log(current_position);
+}
+
+$(document).on("click", "[data-popup='pick-the-pharmacy']", function () {
+
+    if($(this).data('order-id')){
+
+        let order_id = $(this).data('order-id');
+        let data = {products: $(this).data("products"), pharmacies: $(this).data("pharmacies")};
+        let req = APP.ajax.post($(this).data("prices-url"), data);
+
+        req.then(function (resp) {
+            if (resp.succsess) {
+                price_per_pharmacy = resp.data;
+                initMap2(order_id);
+            }
+        });
+
+    }else{
+        let req = APP.ajax.get($(this).data("prices-url"));
+
+        req.then(function (resp) {
+            if (resp.succsess) {
+                price_per_pharmacy = resp.data;
+                initMap2();
+            }
+        });
+    }
+
+
+});
