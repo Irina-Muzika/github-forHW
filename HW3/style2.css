@@ -1,0 +1,153 @@
+.p1 {
+    color: lightgray;
+    font-size: smaller;
+    display: inline;
+}
+
+.p2 {
+    color: lightgray;
+    font-size: smaller;
+    display: inline;
+    margin: 0px 50px 0px 500px;
+}
+
+.p3 {
+    color: lightgray;
+    font-size: smaller;
+    text-align: right;
+}
+
+.img {
+    float: right;
+    padding: 10px;
+    width: 300px;
+    height: 150px;
+}
+
+
+.box {
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+    font-size: 100px;
+    letter-spacing: -5px;
+    font-weight: 800;
+    margin: 10px;
+    margin-bottom: -50px;
+}
+
+.btn {
+    display: inline-block;
+    color: black;
+    font-size: 18px;
+    font-weight: 1000px;
+    padding: 10px 50px;
+    border-radius: 100px;
+    border: 2px solid transparent;
+    text-decoration: none;
+}
+
+.btn2 {
+    color: black;
+    font-size: 12px;
+    font-weight: 1000px;
+    padding: 10px 20px;
+    border-radius: 1000px;
+    border: 2px solid transparent;
+    text-decoration: none;
+    background-color: palevioletred;
+}
+
+.grid img {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin: 0;
+}
+
+.left-picture {
+    width: 49%;
+    display: inline-block;
+    position: relative;
+}
+
+.left-picture img {
+    height: 830px;
+}
+
+.right-picture {
+    width: 49%;
+    display: inline-block;
+}
+
+.right-picture img {
+    height: 400px;
+}
+
+.half-width {
+    width: 49%;
+    display: inline-block;
+}
+
+.half-width img {
+    height: 400px;
+}
+
+.text {
+    position: absolute;
+    bottom: 170px;
+    left: 16px;
+    border: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    color: white;
+}
+
+h1.text {
+    bottom: 190px;
+}
+
+.top-picrure img {
+    width: 20px;
+    display: inline-block;
+
+}
+
+
+.picture img {
+    width: 600px;
+    height: 300px;
+    float: left;
+    padding: 10px;
+    margin: 0px 20px 0px 10px;
+}
+
+.picture2 img {
+    height: 300px;
+    width: 290px;
+    float: right;
+    padding: 10px;
+    margin: 0px 200px 0px 20px;
+}
+.picture3 img{
+    height: 500px;
+    width: 450px;
+    float: left;
+    margin: 17px;
+}
+
+.picture4 img {
+    height: 250px;
+    width: 200px;
+    float: right;
+    padding: 10px;
+    margin: 0px 200px 0px 20px;
+}
+
+
+.texxt h1{
+    padding: 40px;
+    font-size: 95px;
+    text-indent: 30px;
+    height: 450px;
+ margin: 10px; 
+}
